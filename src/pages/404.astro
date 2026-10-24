@@ -1,0 +1,20 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Game Over · Himes HQ" description="This stage does not exist." noindex>
+  <main id="main" class="grid min-h-svh place-items-center px-4 py-16 text-center">
+    <div class="flex flex-col items-center gap-8">
+      <h1 class="font-pixel text-[clamp(1.5rem,9vw,4rem)] text-torii [text-shadow:0.08em_0.08em_0_var(--color-magenta)]">
+        GAME OVER
+      </h1>
+      <p class="font-pixel text-sm text-paper">CONTINUE?</p>
+      <a
+        href="/"
+        class="pixel-window block px-8 py-4 font-pixel text-sm text-paper no-underline hover:[--edge:var(--color-sun)]"
+      >
+        <span class="text-sun">&gt;</span> YES
+      </a>
+    </div>
+  </main>
+</BaseLayout>
