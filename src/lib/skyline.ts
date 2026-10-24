@@ -7,6 +7,8 @@ export const SCENE_HEIGHT = 128;
 export const SKY_EXTRA = 96;
 
 const DECK_TOP = 116;
+/** Where DotGothic16 sits its baseline, as a fraction of the em box. */
+const GLYPH_BASELINE = 0.86;
 
 export interface SignGlyph {
   char: string;
@@ -16,7 +18,6 @@ export interface SignGlyph {
 
 export interface Sign {
   id: string;
-  font: 'jp' | 'pixel';
   size: number;
   plate: Rect;
   color: SceneColor;
@@ -39,7 +40,6 @@ interface SignSpec {
   id: string;
   text: string;
   layout: 'stack' | 'row';
-  font: 'jp' | 'pixel';
   size: number;
   anchorX: number;
   drop: number;
@@ -52,7 +52,6 @@ const SIGN_SPECS: readonly SignSpec[] = [
     id: 'music',
     text: '音楽',
     layout: 'stack',
-    font: 'jp',
     size: 9,
     anchorX: 16,
     drop: 6,
@@ -63,7 +62,6 @@ const SIGN_SPECS: readonly SignSpec[] = [
     id: 'tokyo',
     text: '東京',
     layout: 'stack',
-    font: 'jp',
     size: 9,
     anchorX: 128,
     drop: 6,
@@ -71,11 +69,10 @@ const SIGN_SPECS: readonly SignSpec[] = [
     shadow: 'magenta',
   },
   {
-    id: 'ai',
-    text: 'AI',
+    id: 'ramen',
+    text: 'ラーメン',
     layout: 'row',
-    font: 'pixel',
-    size: 7,
+    size: 9,
     anchorX: 164,
     drop: 10,
     color: 'sun',
@@ -85,7 +82,6 @@ const SIGN_SPECS: readonly SignSpec[] = [
     id: 'guitar',
     text: 'ギター',
     layout: 'row',
-    font: 'jp',
     size: 9,
     anchorX: 236,
     drop: 20,
@@ -245,18 +241,16 @@ function paintSigns(canvas: PixelCanvas, buildings: readonly Building[]): Sign[]
     canvas.rect(plateX - 1, plateY - 1, width + 2, height + 2, 'indigo');
     canvas.rect(plateX, plateY, width, height, 'void');
 
-    const baseline = spec.font === 'jp' ? 0.86 : 0.95;
     const glyphs = chars.map((char, index) => ({
       char,
       x: stacked ? plateX + width / 2 : plateX + 2 + index * spec.size + spec.size / 2,
       y: stacked
-        ? plateY + 2 + index * spec.size + spec.size * baseline
-        : plateY + (height + spec.size * baseline) / 2 - (spec.font === 'pixel' ? 0.5 : 0),
+        ? plateY + 2 + index * spec.size + spec.size * GLYPH_BASELINE
+        : plateY + (height + spec.size * GLYPH_BASELINE) / 2,
     }));
 
     return {
       id: spec.id,
-      font: spec.font,
       size: spec.size,
       plate: { x: plateX, y: plateY, w: width, h: height },
       color: spec.color,

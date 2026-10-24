@@ -36,7 +36,7 @@ const skyRects = sky.toRects();
       {sign.glyphs.map(({ char, x, y }) => (
         <>
           <text
-            class={`glyph glyph-${sign.font}`}
+            class="glyph"
             x={x + 1}
             y={y + 1}
             font-size={sign.size}
@@ -46,7 +46,7 @@ const skyRects = sky.toRects();
             {char}
           </text>
           <text
-            class={`glyph glyph-${sign.font}`}
+            class="glyph"
             x={x}
             y={y}
             font-size={sign.size}
@@ -71,15 +71,8 @@ const skyRects = sky.toRects();
     height: var(--scene-height);
   }
 
-  .glyph-jp {
-    font-family: var(--font-jp);
-  }
-
-  .glyph-pixel {
-    font-family: var(--font-pixel);
-  }
-
   .glyph {
+    font-family: var(--font-jp);
     text-rendering: optimizeSpeed;
   }
 
