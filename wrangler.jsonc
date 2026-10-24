@@ -2,7 +2,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "himeshq",
-  // Placeholder: set this to the day of the first real deploy.
+  // Day of the first deploy; bump it deliberately when adopting newer runtime behavior.
   "compatibility_date": "2026-10-24",
   // Only himeshq.com serves the site; no *.workers.dev hostname.
   "workers_dev": false,
