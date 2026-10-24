@@ -37,13 +37,16 @@ jobs:
       - run: pnpm format:check
       - run: pnpm build
 
-  # Off until the repository variable DEPLOY_ENABLED is set to "true".
+  # Runs only on pushes to main and manual runs from main, so it shows as skipped on every pull
+  # request. Also gated by the repository variable DEPLOY_ENABLED being "true".
   deploy:
     needs: verify
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: production
+    environment:
+      name: production
+      url: https://himeshq.com
     concurrency:
       group: deploy
       cancel-in-progress: false
