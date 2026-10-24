@@ -1,0 +1,41 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <p>
+    © {year} The Himes Family{' '}
+    <span class="sep" aria-hidden="true">
+      ·
+    </span>
+    <a href="mailto:hello@himeshq.com">hello@himeshq.com</a>
+    <span class="sep" aria-hidden="true">
+      ·
+    </span>
+    <a href="https://brandonhimes.com" rel="noopener">
+      brandonhimes.com
+    </a>
+  </p>
+</footer>
+
+<style>
+  .footer {
+    padding: 2rem 1rem 3rem;
+    text-align: center;
+    color: var(--color-dim);
+    background-color: var(--color-void);
+  }
+
+  .sep {
+    margin-inline: 0.6ch;
+  }
+
+  a {
+    color: var(--color-paper);
+    text-underline-offset: 0.2em;
+  }
+
+  a:hover {
+    color: var(--color-cyan);
+  }
+</style>

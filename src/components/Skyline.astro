@@ -1,0 +1,115 @@
+---
+import { rectsToPath, SCENE_COLORS } from '../lib/pixel-canvas';
+import { buildSkyline, SCENE_HEIGHT, SCENE_WIDTH, SKY_EXTRA } from '../lib/skyline';
+
+// LEARN: Props are declared as a TypeScript interface; Astro reads them from Astro.props.
+interface Props {
+  seed?: number;
+}
+
+const { seed = 2087 } = Astro.props;
+
+// LEARN: this frontmatter runs once at build time, so the SVG below ships as static markup.
+const { canvas, sky, signs } = buildSkyline(seed);
+const rects = canvas.toRects();
+const skyRects = sky.toRects();
+---
+
+<svg
+  class="skyline"
+  viewBox={`0 ${String(-SKY_EXTRA)} ${String(SCENE_WIDTH)} ${String(SCENE_HEIGHT + SKY_EXTRA)}`}
+  preserveAspectRatio="xMidYMax slice"
+  shape-rendering="crispEdges"
+  aria-hidden="true"
+  focusable="false"
+>
+  <g transform={`translate(0 ${String(-SKY_EXTRA)})`}>
+    {SCENE_COLORS.map((color) => (
+      <path d={rectsToPath(skyRects[color])} fill={`var(--color-${color})`} />
+    ))}
+  </g>
+  {SCENE_COLORS.map((color) => (
+    <path d={rectsToPath(rects[color])} fill={`var(--color-${color})`} />
+  ))}
+  {signs.map((sign, index) => (
+    <g class={`sign flicker-${String(index % 3)}`}>
+      {sign.glyphs.map(({ char, x, y }) => (
+        <>
+          <text
+            class={`glyph glyph-${sign.font}`}
+            x={x + 1}
+            y={y + 1}
+            font-size={sign.size}
+            text-anchor="middle"
+            fill={`var(--color-${sign.shadow})`}
+          >
+            {char}
+          </text>
+          <text
+            class={`glyph glyph-${sign.font}`}
+            x={x}
+            y={y}
+            font-size={sign.size}
+            text-anchor="middle"
+            fill={`var(--color-${sign.color})`}
+          >
+            {char}
+          </text>
+        </>
+      ))}
+    </g>
+  ))}
+</svg>
+
+{/* LEARN: <style> in a .astro file is scoped to this component automatically. */}
+<style>
+  .skyline {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    width: 100%;
+    height: var(--scene-height);
+  }
+
+  .glyph-jp {
+    font-family: var(--font-jp);
+  }
+
+  .glyph-pixel {
+    font-family: var(--font-pixel);
+  }
+
+  .glyph {
+    text-rendering: optimizeSpeed;
+  }
+
+  .sign {
+    animation: flicker 9s steps(1) infinite;
+  }
+
+  .flicker-1 {
+    animation-duration: 13s;
+    animation-delay: -4s;
+  }
+
+  .flicker-2 {
+    animation-duration: 17s;
+    animation-delay: -9s;
+  }
+
+  /* Mostly on; a short stutter near the end of each cycle. */
+  @keyframes flicker {
+    0%,
+    91%,
+    94%,
+    97%,
+    100% {
+      opacity: 1;
+    }
+
+    92%,
+    96% {
+      opacity: 0.25;
+    }
+  }
+</style>

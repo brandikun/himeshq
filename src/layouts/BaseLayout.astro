@@ -1,0 +1,46 @@
+---
+import pressStartLatin from '@fontsource/press-start-2p/files/press-start-2p-latin-400-normal.woff2?url';
+import vt323Latin from '@fontsource/vt323/files/vt323-latin-400-normal.woff2?url';
+import '../styles/fonts.css';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  noindex?: boolean;
+}
+
+const { title, description, noindex = false } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#0b0820" />
+    <meta name="color-scheme" content="dark" />
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Himes HQ" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <link rel="preload" href={pressStartLatin} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={vt323Latin} as="font" type="font/woff2" crossorigin />
+  </head>
+  <body class="scanlines">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:bg-void focus:px-3 focus:py-2 focus:font-pixel focus:text-xs focus:text-sun"
+    >
+      Skip to content
+    </a>
+    <slot />
+  </body>
+</html>

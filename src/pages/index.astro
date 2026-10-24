@@ -1,0 +1,23 @@
+---
+import SiteFooter from '../components/SiteFooter.astro';
+import StageSelect from '../components/StageSelect.astro';
+import TitleScreen from '../components/TitleScreen.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+{/* LEARN: every file in src/pages becomes a route; this one is "/". */}
+<BaseLayout
+  title="Himes HQ"
+  description="The Himes Family's corner of the internet: neon nights, music, guitars, and code. Pick a stage."
+>
+  <TitleScreen />
+  <main id="main">
+    <StageSelect />
+  </main>
+  <SiteFooter />
+
+  {/* LEARN: Astro bundles and type-checks <script> tags, and runs them in the browser only. */}
+  <script>
+    import '../scripts/interactions.ts';
+  </script>
+</BaseLayout>

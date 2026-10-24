@@ -1,0 +1,148 @@
+---
+import Skyline from './Skyline.astro';
+---
+
+<header class="title-screen">
+  <Skyline />
+  <div class="rain" aria-hidden="true"></div>
+  <div class="title-card">
+    <h1 class="title">HIMES HQ</h1>
+    <p class="subtitle">
+      <span lang="ja">ようこそ</span> / WELCOME
+    </p>
+    <a class="press-start" href="#stages">
+      <span class="blink">PRESS START</span>
+    </a>
+  </div>
+</header>
+
+<style>
+  .title-screen {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: max(100svh, 34rem);
+    padding: 2rem 1rem calc(var(--scene-height) + 1rem);
+    overflow: hidden;
+    background-color: var(--color-void);
+  }
+
+  .title-card {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  .title {
+    font-family: var(--font-pixel);
+    font-size: clamp(1.75rem, 11vw, 5.5rem);
+    font-weight: 400;
+    line-height: 1;
+    color: var(--color-paper);
+    text-shadow:
+      0.06em 0.06em 0 var(--color-magenta),
+      0.12em 0.12em 0 var(--color-cyan);
+  }
+
+  .subtitle {
+    font-family: var(--font-pixel);
+    font-size: clamp(0.75rem, 3vw, 1.125rem);
+    letter-spacing: 0.15em;
+    color: var(--color-paper);
+  }
+
+  .press-start {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-family: var(--font-pixel);
+    font-size: clamp(0.875rem, 3.4vw, 1.25rem);
+    color: var(--color-sun);
+    text-decoration: none;
+  }
+
+  .press-start:hover {
+    color: var(--color-paper);
+  }
+
+  .blink {
+    display: inline-block;
+    animation: blink 1.2s steps(1) infinite;
+  }
+
+  @keyframes blink {
+    0%,
+    60% {
+      opacity: 1;
+    }
+
+    61%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /*
+   * Rain: slanted 2px streaks. Vertical stripes are masked into dashes, the whole layer is
+   * rotated, and the mask slides in whole steps so the motion stays pixel-choppy.
+   */
+  .rain {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .rain::before,
+  .rain::after {
+    content: '';
+    position: absolute;
+    inset: -30% -10%;
+    transform: rotate(14deg);
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgb(244 240 255 / 0.3) 0 2px,
+      transparent 2px 37px
+    );
+    mask-image: linear-gradient(180deg, #000 0 14px, transparent 14px);
+    mask-size: 100% 56px;
+    animation: rain 0.7s steps(7) infinite;
+  }
+
+  .rain::after {
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgb(0 229 255 / 0.22) 0 1px,
+      transparent 1px 53px
+    );
+    background-position: 19px 0;
+    mask-image: linear-gradient(180deg, #000 0 9px, transparent 9px);
+    mask-size: 100% 44px;
+    animation-duration: 1s;
+    animation-name: rain-slow;
+  }
+
+  @keyframes rain {
+    to {
+      mask-position: 0 56px;
+    }
+  }
+
+  @keyframes rain-slow {
+    to {
+      mask-position: 0 44px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rain {
+      display: none;
+    }
+  }
+</style>

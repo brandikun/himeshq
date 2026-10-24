@@ -1,0 +1,211 @@
+---
+import { stages } from '../data/stages';
+
+const [firstStage] = stages;
+---
+
+<section id="stages" class="stage-select" aria-labelledby="stages-heading">
+  <div class="dither" aria-hidden="true"></div>
+  <div class="inner">
+    <h2 id="stages-heading" class="heading">
+      SELECT STAGE
+    </h2>
+
+    <ul class="grid">
+      {stages.map((stage) => {
+        const Tag = stage.href ? 'a' : 'button';
+        const open = stage.href !== undefined;
+        return (
+          <li>
+            <Tag
+              class="stage"
+              data-stage
+              href={stage.href}
+              rel={open ? 'noopener' : undefined}
+              type={open ? undefined : 'button'}
+              aria-disabled={open ? undefined : 'true'}
+            >
+              <span class="pixel-window window">
+                <span class="label" lang={stage.labelLang}>
+                  {stage.label}
+                </span>
+                <span class="title">{stage.title}</span>
+                <span class:list={['badge', open ? 'badge-open' : 'badge-locked']}>
+                  {open ? 'OPEN' : 'LOCKED'}
+                </span>
+                <span class="sr-only" data-blurb>
+                  {stage.blurb}
+                </span>
+              </span>
+            </Tag>
+          </li>
+        );
+      })}
+    </ul>
+
+    {/* LEARN: aria-hidden because each card already carries its blurb for screen readers. */}
+    <div class="pixel-window dialog" aria-hidden="true">
+      <p class="dialog-text" data-dialog>
+        {firstStage.blurb}
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .stage-select {
+    background-color: var(--color-void);
+  }
+
+  .dither {
+    height: 16px;
+  }
+
+  .inner {
+    max-width: 64rem;
+    margin-inline: auto;
+    padding: 3rem 1rem 4rem;
+  }
+
+  .heading {
+    margin-bottom: 2rem;
+    text-align: center;
+    font-family: var(--font-pixel);
+    font-size: clamp(1rem, 4.5vw, 1.75rem);
+    font-weight: 400;
+    color: var(--color-sun);
+    text-shadow: 0.1em 0.1em 0 var(--color-magenta);
+  }
+
+  .grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+    list-style: none;
+    padding: 0;
+  }
+
+  @media (min-width: 40rem) {
+    .grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .stage {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    text-align: left;
+    color: var(--color-paper);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .stage[aria-disabled='true'] {
+    cursor: default;
+  }
+
+  .window {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    height: 100%;
+    min-height: 8.25rem;
+    padding: 1.25rem 1.25rem 1.25rem 2.75rem;
+  }
+
+  .label {
+    font-family: var(--font-jp);
+    font-size: 1.75rem;
+    line-height: 1;
+    color: var(--color-cyan);
+  }
+
+  .title {
+    font-family: var(--font-pixel);
+    font-size: 0.9375rem;
+  }
+
+  .badge {
+    margin-top: auto;
+    padding: 0.2rem 0.5rem;
+    font-family: var(--font-pixel);
+    font-size: 0.625rem;
+    color: var(--color-void);
+  }
+
+  .badge-locked {
+    background-color: var(--color-sun);
+  }
+
+  .badge-open {
+    background-color: var(--color-cyan);
+  }
+
+  /* Selection cursor: a stepped right-pointing triangle, drawn with clip-path. */
+  .stage::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 1.1rem;
+    width: 12px;
+    height: 20px;
+    margin-top: -10px;
+    background-color: var(--color-sun);
+    clip-path: polygon(
+      0 0,
+      4px 0,
+      4px 4px,
+      8px 4px,
+      8px 8px,
+      12px 8px,
+      12px 12px,
+      8px 12px,
+      8px 16px,
+      4px 16px,
+      4px 20px,
+      0 20px
+    );
+    visibility: hidden;
+  }
+
+  .stage:is(:hover, :focus-visible)::after {
+    visibility: visible;
+  }
+
+  .stage:is(:hover, :focus-visible) .window {
+    --edge: var(--color-sun);
+  }
+
+  .dialog {
+    margin-top: 2rem;
+    min-height: 9.5rem;
+    padding: 1.75rem 1.75rem 1.5rem;
+  }
+
+  /* One column: keep the dialog on screen so tapping a card visibly changes it. */
+  @media (max-width: 39.99rem) {
+    .dialog {
+      position: sticky;
+      bottom: 0.75rem;
+      z-index: 5;
+      min-height: 8.5rem;
+    }
+  }
+
+  .dialog-text {
+    font-size: 1.5rem;
+    line-height: 1.3;
+    color: var(--color-paper);
+  }
+</style>
