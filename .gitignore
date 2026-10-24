@@ -8,5 +8,7 @@ dist/
 .DS_Store
 *.log
 
-# Markdown stays local
-*.md
+# Local agent notes and design docs, not part of the public repo
+CLAUDE.md
+.claude/
+docs/

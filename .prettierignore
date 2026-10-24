@@ -2,4 +2,5 @@ dist/
 .astro/
 .wrangler/
 pnpm-lock.yaml
-*.md
+CLAUDE.md
+docs/
