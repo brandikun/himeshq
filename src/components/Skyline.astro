@@ -63,12 +63,17 @@ const skyRects = sky.toRects();
 
 {/* LEARN: <style> in a .astro file is scoped to this component automatically. */}
 <style>
+  /*
+   * The canvas is 768 x 416 scene units (SCENE_WIDTH x SCENE_HEIGHT + SKY_EXTRA). It is sized in
+   * whole --unit steps and centered, so the container crops the flanks and top rather than scaling.
+   */
   .skyline {
     position: absolute;
-    inset-inline: 0;
     bottom: 0;
-    width: 100%;
-    height: var(--scene-height);
+    left: 50%;
+    width: max(100%, calc(var(--unit) * 768));
+    height: calc(var(--unit) * 416);
+    translate: -50% 0;
   }
 
   .glyph {
