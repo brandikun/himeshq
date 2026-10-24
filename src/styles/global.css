@@ -25,8 +25,11 @@
 }
 
 :root {
-  /* Height of the skyline scene; the title screen reserves the same space below its text. */
-  --scene-height: min(87.5vw, 56svh);
+  /*
+   * Size of one scene pixel. It follows the viewport height, so wide screens reveal more of the
+   * city instead of enlarging it; on phones it is capped so the central 256 units fill the width.
+   */
+  --unit: min(0.3svh, max(1.5px, 0.39vw));
 }
 
 @layer base {
@@ -161,4 +164,20 @@
     animation: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+/*
+ * Phase switching. data-phase is set by the page script, so without JS both screens stay visible
+ * and PRESS START simply scrolls. Unlayered on purpose: it must beat the components' own display.
+ */
+html[data-phase='title'] main {
+  display: none;
+}
+
+html[data-phase='stages'] #title-screen {
+  display: none;
+}
+
+.wave {
+  filter: url('#wave');
 }

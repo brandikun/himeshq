@@ -7,7 +7,7 @@ const [firstStage] = stages;
 <section id="stages" class="stage-select" aria-labelledby="stages-heading">
   <div class="dither" aria-hidden="true"></div>
   <div class="inner">
-    <h2 id="stages-heading" class="heading">
+    <h2 id="stages-heading" class="heading" tabindex="-1">
       SELECT STAGE
     </h2>
 
@@ -75,6 +75,10 @@ const [firstStage] = stages;
     font-weight: 400;
     color: var(--color-sun);
     text-shadow: 0.1em 0.1em 0 var(--color-magenta);
+  }
+
+  .heading:focus {
+    outline: none;
   }
 
   .grid {
