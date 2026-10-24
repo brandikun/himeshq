@@ -1,0 +1,28 @@
+{/* LEARN: an inline SVG <filter> can be applied to any HTML element with CSS `filter: url(#id)`. */}
+{/* Noise that only varies by row, turned into sideways displacement: horizontal bands of wobble. */}
+<svg class="absolute size-0" aria-hidden="true" focusable="false">
+  <filter id="wave" x="-5%" y="0" width="110%" height="100%" color-interpolation-filters="sRGB">
+    <feTurbulence
+      id="wave-noise"
+      type="fractalNoise"
+      baseFrequency="0 0.03"
+      numOctaves="1"
+      seed="1"
+      result="noise"
+    />
+    <feColorMatrix
+      in="noise"
+      type="matrix"
+      values="1 0 0 0 0  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 1"
+      result="map"
+    />
+    <feDisplacementMap
+      id="wave-map"
+      in="SourceGraphic"
+      in2="map"
+      scale="0"
+      xChannelSelector="R"
+      yChannelSelector="G"
+    />
+  </filter>
+</svg>

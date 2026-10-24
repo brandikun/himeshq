@@ -2,7 +2,7 @@
 import Skyline from './Skyline.astro';
 ---
 
-<header class="title-screen">
+<header id="title-screen" class="title-screen">
   <Skyline />
   <div class="rain" aria-hidden="true"></div>
   <div class="title-card">
@@ -21,10 +21,10 @@ import Skyline from './Skyline.astro';
     position: relative;
     isolation: isolate;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     min-height: max(100svh, 34rem);
-    padding: 2rem 1rem calc(var(--scene-height) + 1rem);
+    padding: clamp(2rem, 9svh, 5rem) 1rem 2rem;
     overflow: hidden;
     background-color: var(--color-void);
   }

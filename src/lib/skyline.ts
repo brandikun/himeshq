@@ -1,12 +1,18 @@
 import { PixelCanvas, type Rect, type SceneColor } from './pixel-canvas';
 import { createRandom, pick, randomInt, type Random } from './prng';
 
-export const SCENE_WIDTH = 256;
+/** Three screens wide: the designed scene sits in the middle, flanked by more city. */
+export const SCENE_WIDTH = 768;
 export const SCENE_HEIGHT = 128;
-/** Extra rows of plain sky drawn above the scene, so portrait screens get more than a strip. */
-export const SKY_EXTRA = 96;
+/** Extra rows of plain sky above the scene, so tall and wide screens both get room for the title. */
+export const SKY_EXTRA = 288;
+
+/** Left edge of the central 256-unit composition that phones show on their own. */
+const HERO_X = 256;
 
 const DECK_TOP = 116;
+/** Where DotGothic16 sits its baseline, as a fraction of the em box. */
+const GLYPH_BASELINE = 0.86;
 
 export interface SignGlyph {
   char: string;
@@ -16,7 +22,6 @@ export interface SignGlyph {
 
 export interface Sign {
   id: string;
-  font: 'jp' | 'pixel';
   size: number;
   plate: Rect;
   color: SceneColor;
@@ -30,21 +35,25 @@ export interface Skyline {
   signs: Sign[];
 }
 
-interface Building extends Rect {
-  /** Alternates lit-window palette so neighbouring blocks do not look identical. */
-  tint: number;
-}
+type Palette = readonly [SceneColor, ...SceneColor[]];
 
 interface SignSpec {
   id: string;
   text: string;
   layout: 'stack' | 'row';
-  font: 'jp' | 'pixel';
+  /** Wall signs sit flush on the facade; roof signs stand on posts above the roofline. */
+  mount: 'wall' | 'roof';
   size: number;
   anchorX: number;
-  drop: number;
   color: SceneColor;
   shadow: SceneColor;
+}
+
+/** A building footprint. Sign hosts are sized from their sign, so the two always fit. */
+interface Lot extends Rect {
+  palette: Palette;
+  litChance: number;
+  sign?: { spec: SignSpec; plate: Rect };
 }
 
 const SIGN_SPECS: readonly SignSpec[] = [
@@ -52,10 +61,9 @@ const SIGN_SPECS: readonly SignSpec[] = [
     id: 'music',
     text: '音楽',
     layout: 'stack',
-    font: 'jp',
+    mount: 'wall',
     size: 9,
-    anchorX: 16,
-    drop: 6,
+    anchorX: HERO_X + 14,
     color: 'magenta',
     shadow: 'cyan',
   },
@@ -63,21 +71,19 @@ const SIGN_SPECS: readonly SignSpec[] = [
     id: 'tokyo',
     text: '東京',
     layout: 'stack',
-    font: 'jp',
+    mount: 'wall',
     size: 9,
-    anchorX: 128,
-    drop: 6,
+    anchorX: HERO_X + 120,
     color: 'cyan',
     shadow: 'magenta',
   },
   {
-    id: 'ai',
-    text: 'AI',
+    id: 'ramen',
+    text: 'ラーメン',
     layout: 'row',
-    font: 'pixel',
-    size: 7,
-    anchorX: 164,
-    drop: 10,
+    mount: 'roof',
+    size: 9,
+    anchorX: HERO_X + 156,
     color: 'sun',
     shadow: 'torii',
   },
@@ -85,27 +91,57 @@ const SIGN_SPECS: readonly SignSpec[] = [
     id: 'guitar',
     text: 'ギター',
     layout: 'row',
-    font: 'jp',
+    mount: 'wall',
     size: 9,
-    anchorX: 236,
-    drop: 20,
+    anchorX: HERO_X + 230,
     color: 'paper',
     shadow: 'cyan',
   },
+  // Flank signs only show on screens wide enough to look past the central composition.
+  {
+    id: 'cyber',
+    text: '電脳',
+    layout: 'stack',
+    mount: 'wall',
+    size: 9,
+    anchorX: HERO_X - 104,
+    color: 'paper',
+    shadow: 'magenta',
+  },
+  {
+    id: 'neon',
+    text: 'ネオン',
+    layout: 'row',
+    mount: 'wall',
+    size: 9,
+    anchorX: HERO_X + 256 + 128,
+    color: 'magenta',
+    shadow: 'paper',
+  },
 ];
 
-const WINDOW_COLORS = [
-  'sun',
-  'sun',
-  'sun',
-  'sun',
-  'sun',
-  'cyan',
-  'cyan',
-  'magenta',
-  'magenta',
-  'paper',
-] as const;
+const WINDOW_PALETTES: readonly [Palette, ...Palette[]] = [
+  ['sun', 'sun', 'sun', 'sun', 'paper'],
+  ['cyan', 'cyan', 'cyan', 'paper', 'magenta'],
+  ['magenta', 'magenta', 'cyan', 'sun'],
+  ['sun', 'sun', 'cyan'],
+];
+
+function overlaps(a: Rect, b: Rect, margin: number): boolean {
+  return (
+    a.x < b.x + b.w + margin &&
+    a.x + a.w + margin > b.x &&
+    a.y < b.y + b.h + margin &&
+    a.y + a.h + margin > b.y
+  );
+}
+
+function plateSize(spec: SignSpec): { w: number; h: number } {
+  const count = Array.from(spec.text).length;
+  return spec.layout === 'stack'
+    ? { w: spec.size + 4, h: count * spec.size + 4 }
+    : { w: count * spec.size + 4, h: spec.size + 6 };
+}
 
 function paintSky(canvas: PixelCanvas, random: Random): void {
   canvas.rect(0, 0, SCENE_WIDTH, 30, 'void');
@@ -115,29 +151,60 @@ function paintSky(canvas: PixelCanvas, random: Random): void {
   canvas.dither(62, 5, 'indigo', 'magenta');
   canvas.rect(0, 67, SCENE_WIDTH, 40, 'magenta');
 
-  for (let i = 0; i < 46; i++) {
+  for (let i = 0; i < 140; i++) {
     const star = random() < 0.3 ? 'paper' : 'dim';
-    canvas.set(randomInt(random, 0, SCENE_WIDTH - 1), randomInt(random, 0, 52), star);
+    canvas.set(randomInt(random, 0, SCENE_WIDTH - 1), randomInt(random, 0, 28), star);
   }
+}
+
+/** Long flat banded clouds with a dithered underside, tinted to the band they drift through. */
+function paintClouds(canvas: PixelCanvas, random: Random): void {
+  for (let i = 0; i < 16; i++) {
+    const y = randomInt(random, 12, 44);
+    const color: SceneColor = y < 30 ? 'night' : 'indigo';
+    const width = randomInt(random, 36, 70);
+    const x = randomInt(random, -10, SCENE_WIDTH - width + 10);
+    canvas.rect(x + 8, y, width - 16, 2, color);
+    canvas.rect(x + 3, y + 2, width - 6, 2, color);
+    canvas.rect(x, y + 4, width, 2, color);
+    for (let dx = 4; dx < width - 4; dx += 2) {
+      canvas.set(x + dx, y + 6, color);
+    }
+  }
+}
+
+function paintMoon(canvas: PixelCanvas): void {
+  const cx = HERO_X + 44;
+  const cy = 38;
+  canvas.disc(cx, cy, 11, 'dim');
+  canvas.disc(cx - 2, cy - 1, 10, 'paper');
+  canvas.rect(cx - 6, cy - 4, 3, 3, 'dim');
+  canvas.rect(cx + 2, cy + 3, 4, 3, 'dim');
+  canvas.rect(cx - 3, cy + 6, 2, 2, 'dim');
+}
+
+/** A distant aircraft: one magenta dot with a pale trail. */
+function paintAircraft(canvas: PixelCanvas): void {
+  canvas.set(HERO_X + 176, 24, 'magenta');
+  canvas.set(HERO_X + 172, 25, 'dim');
+  canvas.set(HERO_X + 168, 26, 'dim');
 }
 
 function paintHighSky(random: Random): PixelCanvas {
   const sky = new PixelCanvas(SCENE_WIDTH, SKY_EXTRA);
   sky.rect(0, 0, SCENE_WIDTH, SKY_EXTRA, 'void');
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < 520; i++) {
     const star = random() < 0.25 ? 'paper' : 'dim';
     sky.set(randomInt(random, 0, SCENE_WIDTH - 1), randomInt(random, 0, SKY_EXTRA - 1), star);
   }
+  for (let i = 0; i < 26; i++) {
+    const x = randomInt(random, 6, SCENE_WIDTH - 7);
+    const y = randomInt(random, 6, SKY_EXTRA - 7);
+    sky.rect(x - 2, y, 5, 1, 'dim');
+    sky.rect(x, y - 2, 1, 5, 'dim');
+    sky.set(x, y, 'paper');
+  }
   return sky;
-}
-
-function paintMoon(canvas: PixelCanvas): void {
-  const cx = 58;
-  const cy = 54;
-  canvas.disc(cx, cy, 9, 'dim');
-  canvas.disc(cx - 2, cy - 1, 8, 'paper');
-  canvas.rect(cx - 5, cy - 3, 2, 2, 'dim');
-  canvas.rect(cx + 1, cy + 3, 3, 2, 'dim');
 }
 
 function paintFarSkyline(canvas: PixelCanvas, random: Random): void {
@@ -158,7 +225,7 @@ function paintFarSkyline(canvas: PixelCanvas, random: Random): void {
 }
 
 function paintTower(canvas: PixelCanvas): void {
-  const cx = 206;
+  const cx = HERO_X + 206;
   const top = 58;
   const base = 118;
   const bandHeight = 10;
@@ -189,85 +256,149 @@ function paintTower(canvas: PixelCanvas): void {
     canvas.line(cx + halfWidth(y), y, cx - halfWidth(lower), lower, color);
   }
 
-  const deck = top + 34;
+  const deck = top + 22;
   canvas.rect(cx - halfWidth(deck) - 3, deck, halfWidth(deck) * 2 + 7, 3, 'paper');
   canvas.rect(cx - halfWidth(deck) - 3, deck + 3, halfWidth(deck) * 2 + 7, 1, 'torii');
 }
 
-function paintBuildings(canvas: PixelCanvas, random: Random): Building[] {
-  const buildings: Building[] = [];
+function newLot(random: Random, x: number, w: number, h: number): Lot {
+  return {
+    x,
+    y: SCENE_HEIGHT - h,
+    w,
+    h,
+    palette: pick(random, WINDOW_PALETTES),
+    litChance: 0.25 + random() * 0.25,
+  };
+}
+
+/** Sizes a lot around its sign: wide enough to carry it, tall enough to show it above the deck. */
+function newSignLot(random: Random, spec: SignSpec): Lot {
+  const plate = plateSize(spec);
+  const roof = spec.mount === 'roof';
+  const w = plate.w + (roof ? 2 : spec.layout === 'stack' ? 6 : 4);
+  const h = roof ? randomInt(random, 34, 42) : plate.h + 26 + randomInt(random, 0, 10);
+  const lot = newLot(random, Math.round(spec.anchorX - w / 2), w, h);
+  const plateX = lot.x + Math.floor((w - plate.w) / 2);
+  const plateY = roof ? lot.y - 3 - plate.h : lot.y + 6;
+  return { ...lot, sign: { spec, plate: { x: plateX, y: plateY, w: plate.w, h: plate.h } } };
+}
+
+/** Fills the span from `from` to `to` with ordinary buildings, last one stretched to land exactly. */
+function fillGap(random: Random, lots: Lot[], from: number, to: number): void {
+  let x = from;
+  while (to - x > 0) {
+    const remaining = to - x;
+    const previous = lots.at(-1);
+    if (remaining < 8 && previous) {
+      previous.w += remaining;
+      return;
+    }
+    let w = remaining <= 26 ? remaining : randomInt(random, 14, 26);
+    if (remaining - w > 0 && remaining - w < 8) {
+      w = remaining;
+    }
+    lots.push(newLot(random, x, w, randomInt(random, 36, 74)));
+    x += w;
+  }
+}
+
+function planLots(random: Random): Lot[] {
+  const hosts = SIGN_SPECS.map((spec) => newSignLot(random, spec)).sort((a, b) => a.x - b.x);
+  const lots: Lot[] = [];
   let x = -2;
-  while (x < SCENE_WIDTH) {
-    const w = randomInt(random, 14, 26);
-    const h = randomInt(random, 36, 74);
-    const building: Building = { x, y: SCENE_HEIGHT - h, w, h, tint: buildings.length % 3 };
-    buildings.push(building);
-    x += w + randomInt(random, 0, 2);
+  for (const host of hosts) {
+    fillGap(random, lots, x, host.x);
+    lots.push(host);
+    x = host.x + host.w;
+  }
+  fillGap(random, lots, x, SCENE_WIDTH + 2);
+  return lots;
+}
+
+/** Tall buildings step in near the top; everything else is a single block. */
+function facadesOf(random: Random, lot: Lot): Rect[] {
+  if (lot.h <= 60 || lot.sign || lot.w < 16) {
+    return [{ x: lot.x, y: lot.y, w: lot.w, h: lot.h }];
+  }
+  const tier = randomInt(random, 10, 16);
+  return [
+    { x: lot.x, y: lot.y + tier, w: lot.w, h: lot.h - tier },
+    { x: lot.x + 3, y: lot.y, w: lot.w - 6, h: tier + 1 },
+  ];
+}
+
+function paintLot(canvas: PixelCanvas, random: Random, lot: Lot): void {
+  const facades = facadesOf(random, lot);
+  for (const { x, y, w, h } of facades) {
+    canvas.rect(x, y, w, h, 'void');
+    canvas.rect(x, y, w, 1, 'indigo');
+    canvas.rect(x, y, 1, h, 'indigo');
   }
 
-  for (const { x: bx, y: by, w, h } of buildings) {
-    canvas.rect(bx, by, w, h, 'void');
-    canvas.rect(bx, by, w, 1, 'indigo');
-    canvas.rect(bx, by, 1, h, 'indigo');
-
+  const roofTop = facades.at(-1) ?? lot;
+  if (lot.sign?.spec.mount !== 'roof') {
     if (random() < 0.4) {
       const boxWidth = randomInt(random, 4, 7);
-      const boxX = bx + randomInt(random, 2, Math.max(2, w - boxWidth - 2));
-      canvas.rect(boxX, by - 3, boxWidth, 3, 'void');
-      canvas.rect(boxX, by - 3, boxWidth, 1, 'indigo');
+      const boxX = roofTop.x + randomInt(random, 2, Math.max(2, roofTop.w - boxWidth - 2));
+      canvas.rect(boxX, roofTop.y - 3, boxWidth, 3, 'void');
+      canvas.rect(boxX, roofTop.y - 3, boxWidth, 1, 'indigo');
     }
     if (random() < 0.3) {
-      const mastX = bx + randomInt(random, 3, w - 3);
-      canvas.rect(mastX, by - randomInt(random, 5, 9), 1, 9, 'dim');
+      const mastX = roofTop.x + randomInt(random, 3, roofTop.w - 3);
+      canvas.rect(mastX, roofTop.y - randomInt(random, 5, 9), 1, 9, 'dim');
     }
+  }
 
-    for (let wy = by + 4; wy + 2 <= DECK_TOP - 2; wy += 5) {
-      for (let wx = bx + 3; wx + 2 <= bx + w - 2; wx += 4) {
-        const lit = random() < 0.38;
-        canvas.rect(wx, wy, 2, 2, lit ? pick(random, WINDOW_COLORS) : 'night');
+  for (const facade of facades) {
+    for (let wy = facade.y + 4; wy + 2 <= DECK_TOP - 2; wy += 5) {
+      for (let wx = facade.x + 3; wx + 2 <= facade.x + facade.w - 2; wx += 4) {
+        const window: Rect = { x: wx, y: wy, w: 2, h: 2 };
+        if (wy + 2 > facade.y + facade.h || (lot.sign && overlaps(window, lot.sign.plate, 2))) {
+          continue;
+        }
+        canvas.rect(wx, wy, 2, 2, random() < lot.litChance ? pick(random, lot.palette) : 'night');
       }
     }
   }
-  return buildings;
 }
 
-function paintSigns(canvas: PixelCanvas, buildings: readonly Building[]): Sign[] {
-  return SIGN_SPECS.map((spec) => {
-    const chars = Array.from(spec.text);
+function paintSigns(canvas: PixelCanvas, lots: readonly Lot[]): Sign[] {
+  const signs: Sign[] = [];
+  for (const { sign } of lots) {
+    if (!sign) {
+      continue;
+    }
+    const { spec, plate } = sign;
+    canvas.rect(plate.x - 1, plate.y - 1, plate.w + 2, plate.h + 2, 'indigo');
+    canvas.rect(plate.x, plate.y, plate.w, plate.h, 'void');
+    if (spec.mount === 'roof') {
+      canvas.rect(plate.x + 3, plate.y + plate.h + 1, 1, 3, 'dim');
+      canvas.rect(plate.x + plate.w - 4, plate.y + plate.h + 1, 1, 3, 'dim');
+    }
+
     const stacked = spec.layout === 'stack';
-    const width = stacked ? spec.size + 4 : chars.length * spec.size + 4;
-    const height = stacked ? chars.length * spec.size + 4 : spec.size + 6;
-    const host =
-      buildings.find(({ x, w }) => spec.anchorX >= x && spec.anchorX < x + w) ?? buildings[0];
-    const plateX = Math.round((host?.x ?? 0) + ((host?.w ?? width) - width) / 2);
-    const plateY = (host?.y ?? 40) + spec.drop;
-
-    canvas.rect(plateX - 1, plateY - 1, width + 2, height + 2, 'indigo');
-    canvas.rect(plateX, plateY, width, height, 'void');
-
-    const baseline = spec.font === 'jp' ? 0.86 : 0.95;
-    const glyphs = chars.map((char, index) => ({
+    const glyphs = Array.from(spec.text).map((char, index) => ({
       char,
-      x: stacked ? plateX + width / 2 : plateX + 2 + index * spec.size + spec.size / 2,
+      x: stacked ? plate.x + plate.w / 2 : plate.x + 2 + index * spec.size + spec.size / 2,
       y: stacked
-        ? plateY + 2 + index * spec.size + spec.size * baseline
-        : plateY + (height + spec.size * baseline) / 2 - (spec.font === 'pixel' ? 0.5 : 0),
+        ? plate.y + 2 + index * spec.size + spec.size * GLYPH_BASELINE
+        : plate.y + (plate.h + spec.size * GLYPH_BASELINE) / 2,
     }));
-
-    return {
+    signs.push({
       id: spec.id,
-      font: spec.font,
       size: spec.size,
-      plate: { x: plateX, y: plateY, w: width, h: height },
+      plate,
       color: spec.color,
       shadow: spec.shadow,
       glyphs,
-    };
-  });
+    });
+  }
+  return signs;
 }
 
 function paintTorii(canvas: PixelCanvas): void {
-  const cx = 44;
+  const cx = HERO_X + 50;
   const base = DECK_TOP;
   const top = base - 34;
 
@@ -291,45 +422,60 @@ function paintDeck(canvas: PixelCanvas): void {
   }
 }
 
-function drawGuitar(
-  canvas: PixelCanvas,
-  cx: number,
-  color: SceneColor,
-  dx: number,
-  dy: number,
-): void {
-  const x = cx + dx;
-  const bottom = DECK_TOP - 12 + dy;
-  canvas.disc(x, bottom, 8, color);
-  canvas.disc(x - 1, bottom - 11, 6, color);
-  canvas.rect(x - 5, bottom - 12, 10, 8, color);
-  canvas.rect(x - 1, bottom - 46, 3, 36, color);
-  canvas.rect(x - 2, bottom - 54, 5, 9, color);
-  canvas.rect(x - 3, bottom - 53, 1, 2, color);
-  canvas.rect(x - 3, bottom - 49, 1, 2, color);
-  canvas.rect(x + 3, bottom - 54, 1, 2, color);
-  canvas.rect(x + 3, bottom - 50, 1, 2, color);
+const GUITAR_TILT = 0.12;
+
+/**
+ * Electric guitar silhouette in its own (u, v) frame: u runs up the neck from the bottom of the
+ * body, v across it. Offset double cutaway, slim neck, small headstock.
+ */
+function insideGuitar(u: number, v: number): boolean {
+  const ellipse = (cu: number, cv: number, au: number, av: number): boolean =>
+    ((u - cu) / au) ** 2 + ((v - cv) / av) ** 2 <= 1;
+  const body = ellipse(7, 0, 7.5, 7.5) || ellipse(17, 0.4, 5.5, 5.8);
+  const horns = ellipse(22.5, 5.4, 3.2, 1.7) || ellipse(21, -5.2, 2.6, 1.5);
+  const neck = u >= 21 && u <= 38 && Math.abs(v) <= 1.1;
+  const head = u > 38 && u <= 45 && Math.abs(v + 0.4) <= 1.9;
+  return body || horns || neck || head;
 }
 
 function paintGuitar(canvas: PixelCanvas): void {
-  const cx = 92;
-  canvas.line(cx - 1, DECK_TOP - 8, cx - 9, DECK_TOP - 1, 'indigo');
-  canvas.line(cx + 1, DECK_TOP - 8, cx + 9, DECK_TOP - 1, 'indigo');
+  const cx = HERO_X + 92;
+  const baseY = DECK_TOP - 7;
+  const sin = Math.sin(GUITAR_TILT);
+  const cos = Math.cos(GUITAR_TILT);
+  const frame = (x: number, y: number): { u: number; v: number } => {
+    const dx = x - cx;
+    const dy = baseY - y;
+    return { u: dx * sin + dy * cos, v: dx * cos - dy * sin };
+  };
+  const filled = (x: number, y: number): boolean => {
+    const { u, v } = frame(x, y);
+    return insideGuitar(u, v);
+  };
 
-  for (const [dx, dy] of [
-    [-1, 0],
-    [1, 0],
-    [0, -1],
-    [0, 1],
-  ] as const) {
-    drawGuitar(canvas, cx, 'magenta', dx, dy);
+  canvas.line(cx - 1, DECK_TOP - 5, cx - 9, DECK_TOP - 1, 'dim');
+  canvas.line(cx + 1, DECK_TOP - 5, cx + 9, DECK_TOP - 1, 'dim');
+
+  for (let y = baseY - 54; y <= baseY + 9; y++) {
+    for (let x = cx - 14; x <= cx + 22; x++) {
+      if (filled(x, y)) {
+        canvas.set(x, y, 'void');
+      } else if (filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1)) {
+        canvas.set(x, y, 'magenta');
+      }
+    }
   }
-  drawGuitar(canvas, cx, 'void', 0, 0);
 
-  const bottom = DECK_TOP - 12;
-  canvas.rect(cx - 4, bottom - 6, 8, 1, 'night');
-  canvas.rect(cx - 4, bottom - 1, 8, 1, 'night');
-  canvas.rect(cx - 3, bottom + 4, 6, 1, 'night');
+  for (let y = baseY - 30; y <= baseY + 2; y++) {
+    for (let x = cx - 10; x <= cx + 14; x++) {
+      const { u, v } = frame(x, y);
+      const pickup = (u >= 11.5 && u < 12.7) || (u >= 15 && u < 16.2);
+      const bridge = u >= 6 && u < 7.2;
+      if ((pickup || bridge) && Math.abs(v) <= 3.4 && filled(x, y)) {
+        canvas.set(x, y, 'night');
+      }
+    }
+  }
 }
 
 /** Builds the title-screen scene. The same seed always yields the same pixels. */
@@ -338,11 +484,16 @@ export function buildSkyline(seed: number): Skyline {
   const canvas = new PixelCanvas(SCENE_WIDTH, SCENE_HEIGHT);
 
   paintSky(canvas, random);
+  paintClouds(canvas, random);
   paintMoon(canvas);
+  paintAircraft(canvas);
   paintFarSkyline(canvas, random);
   paintTower(canvas);
-  const buildings = paintBuildings(canvas, random);
-  const signs = paintSigns(canvas, buildings);
+  const lots = planLots(random);
+  for (const lot of lots) {
+    paintLot(canvas, random, lot);
+  }
+  const signs = paintSigns(canvas, lots);
   paintDeck(canvas);
   paintTorii(canvas);
   paintGuitar(canvas);

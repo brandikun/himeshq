@@ -2,6 +2,7 @@
 import SiteFooter from '../components/SiteFooter.astro';
 import StageSelect from '../components/StageSelect.astro';
 import TitleScreen from '../components/TitleScreen.astro';
+import WaveFilter from '../components/WaveFilter.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
@@ -10,6 +11,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   title="Himes HQ"
   description="The Himes Family's corner of the internet: neon nights, music, guitars, and code. Pick a stage."
 >
+  <WaveFilter />
   <TitleScreen />
   <main id="main">
     <StageSelect />

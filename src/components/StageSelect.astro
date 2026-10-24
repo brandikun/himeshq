@@ -7,7 +7,11 @@ const [firstStage] = stages;
 <section id="stages" class="stage-select" aria-labelledby="stages-heading">
   <div class="dither" aria-hidden="true"></div>
   <div class="inner">
-    <h2 id="stages-heading" class="heading">
+    {/* LEARN: icon-only buttons need an aria-label, since there is no text to name them. */}
+    <button type="button" class="back" data-back aria-label="Back to title screen">
+      <span class="arrow" aria-hidden="true"></span>
+    </button>
+    <h2 id="stages-heading" class="heading" tabindex="-1">
       SELECT STAGE
     </h2>
 
@@ -62,9 +66,69 @@ const [firstStage] = stages;
   }
 
   .inner {
+    position: relative;
     max-width: 64rem;
     margin-inline: auto;
     padding: 3rem 1rem 4rem;
+  }
+
+  /* Only offered once the page script has switched to the stage screen. */
+  .back {
+    display: none;
+    position: absolute;
+    top: 2.25rem;
+    left: 0.5rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  :global(html[data-phase='stages']) .back {
+    display: block;
+  }
+
+  .back:focus-visible {
+    outline-color: var(--color-paper);
+  }
+
+  /* A stepped left-pointing arrow with a hard one-step shadow, both cut with clip-path. */
+  .arrow,
+  .back::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 18px;
+    height: 30px;
+    margin: -15px 0 0 -9px;
+    clip-path: polygon(
+      12px 0,
+      18px 0,
+      18px 30px,
+      12px 30px,
+      12px 24px,
+      6px 24px,
+      6px 18px,
+      0 18px,
+      0 12px,
+      6px 12px,
+      6px 6px,
+      12px 6px
+    );
+  }
+
+  .arrow {
+    background-color: var(--color-sun);
+  }
+
+  .back::before {
+    content: '';
+    background-color: var(--color-magenta);
+    translate: 3px 3px;
+  }
+
+  .back:is(:hover, :focus-visible) .arrow {
+    background-color: var(--color-paper);
   }
 
   .heading {
@@ -75,6 +139,10 @@ const [firstStage] = stages;
     font-weight: 400;
     color: var(--color-sun);
     text-shadow: 0.1em 0.1em 0 var(--color-magenta);
+  }
+
+  .heading:focus {
+    outline: none;
   }
 
   .grid {

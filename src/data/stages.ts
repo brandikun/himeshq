@@ -26,13 +26,15 @@ export const stages: readonly [Stage, ...Stage[]] = [
   },
   {
     id: 'ai',
-    label: 'AI',
+    label: '知能',
+    labelLang: 'ja',
     title: 'AI',
     blurb: 'Machines that learn. Experiments and notes in progress.',
   },
   {
     id: 'code',
-    label: 'CODE',
+    label: 'コード',
+    labelLang: 'ja',
     title: 'CODE',
     blurb: 'Builds, tools, and engineering notes live at brandonhimes.com.',
     href: 'https://brandonhimes.com',
