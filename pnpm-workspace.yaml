@@ -1,0 +1,4 @@
+# LEARN: pnpm blocks dependency install scripts by default; only these two (esbuild, workerd) may run theirs.
+allowBuilds:
+  esbuild: true
+  workerd: true
