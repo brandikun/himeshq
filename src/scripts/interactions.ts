@@ -51,6 +51,7 @@ function sayStage(event: Event): void {
 function setPhase(phase: Phase): void {
   root.dataset.phase = phase;
   titleScreen?.style.removeProperty('opacity');
+  stageSelect?.style.removeProperty('opacity');
 }
 
 /** Whole-step wave: the screen wobbles sideways in bands while it fades, like a console HDMA effect. */
@@ -81,28 +82,50 @@ function wipe(target: HTMLElement, direction: 'out' | 'in'): Promise<void> {
   });
 }
 
-async function start(): Promise<void> {
-  if (busy || root.dataset.phase !== 'title' || !titleScreen || !stageSelect) {
+/** Wave out of the current screen, swap, wave into the next. Instant under reduced motion. */
+async function transition(next: Phase): Promise<void> {
+  const leaving = next === 'stages' ? titleScreen : stageSelect;
+  const entering = next === 'stages' ? stageSelect : titleScreen;
+  if (!leaving || !entering || busy || root.dataset.phase === next || reducedMotion.matches) {
+    setPhase(next);
+    window.scrollTo(0, 0);
     return;
   }
   busy = true;
-  window.history.pushState(null, '', '#stages');
-  if (!reducedMotion.matches) {
-    await wipe(titleScreen, 'out');
-  }
-  setPhase('stages');
+  await wipe(leaving, 'out');
+  setPhase(next);
   window.scrollTo(0, 0);
-  if (!reducedMotion.matches) {
-    await wipe(stageSelect, 'in');
-  }
-  stageSelect.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
+  await wipe(entering, 'in');
+  const focusTarget =
+    next === 'stages' ? entering.querySelector('h2') : entering.querySelector('a');
+  focusTarget?.focus({ preventScroll: true });
   busy = false;
+}
+
+function start(): void {
+  if (busy || root.dataset.phase !== 'title') {
+    return;
+  }
+  window.history.pushState({ phase: 'stages' }, '', '#stages');
+  void transition('stages');
+}
+
+/** Back to the title. Through history when we pushed the entry; in place after a deep link. */
+function goBack(): void {
+  if (busy || root.dataset.phase !== 'stages') {
+    return;
+  }
+  if ((window.history.state as { phase?: string } | null)?.phase === 'stages') {
+    window.history.back();
+    return;
+  }
+  window.history.replaceState(null, '', window.location.pathname);
+  void transition('title');
 }
 
 setPhase(window.location.hash === '#stages' ? 'stages' : 'title');
 window.addEventListener('popstate', () => {
-  setPhase(window.location.hash === '#stages' ? 'stages' : 'title');
-  window.scrollTo(0, 0);
+  void transition(window.location.hash === '#stages' ? 'stages' : 'title');
 });
 
 stageList?.addEventListener('pointerover', sayStage);
@@ -111,16 +134,19 @@ stageList?.addEventListener('focusin', sayStage);
 // Without JS the PRESS START anchor just scrolls to #stages; with JS it plays the transition.
 document.querySelector('a[href="#stages"]')?.addEventListener('click', (event) => {
   event.preventDefault();
-  void start();
+  start();
 });
+document.querySelector('[data-back]')?.addEventListener('click', goBack);
 
 document.addEventListener('keydown', (event) => {
-  if (
+  if (event.key === 'Escape') {
+    goBack();
+  } else if (
     (event.key === 'Enter' || event.key === ' ') &&
     event.target === document.body &&
     root.dataset.phase === 'title'
   ) {
     event.preventDefault();
-    void start();
+    start();
   }
 });
